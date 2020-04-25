@@ -1,11 +1,30 @@
+'use strict'
+
 var enrollmentUtils = (function () {
     const constants = {
         URL_ROOT: 'http://localhost:9000/api/',
         URL_PATH_ENROLLEES: 'enrollees/',
+        URL_INSURANCE_COMPANIES: 'insuranceCompanies/',
+        URL_INSURANCE_COMPANY: 'insuranceCompany/',
 
         ID_SELECT_FILE: 'select_file',
         ID_GET_ALL_ENROLLEES: 'get_all_enrollees',
         ID_REMOVE_ALL_ENROLLEES: 'remove_all_enrollees',
+        ID_LINKS: 'links',
+
+        HTML_ARCHOR: 'a',
+        HTML_DIR: 'dir',
+        ATTRIBUTE_STYLE: 'style',
+        ATTRIBUTE_CLASS: 'class',
+        ATTRIBUTE_HREF: 'href',
+        ATTRIBUTE_DOWNLOAD: 'download',
+        ATTRIBUTE_ROLE: 'role',
+        ATTRIBUTE_ARIA_PRESSED: 'aria-pressed',
+        ATTRIBUTE_VALUE: 'value',
+        CSV_HEADER: 'data:text/csv;charset=utf-8,',
+        CSV_EXTENSION: '.csv',
+
+        BOOTSTRAP_CSS_LINK: 'btn btn-secondary btn-sm',
 
         EVENT_CHANGE: 'change',
         EVENT_CLICK: 'click',
@@ -16,17 +35,21 @@ var enrollmentUtils = (function () {
         DELETE: 'DELETE',
         JSON: 'json',
         COMMA: ',',
-        CARRIAGE_RETURN: "\n",
-        EMPTY_STRING: "",
+        CARRIAGE_RETURN: '\n',
+        EMPTY_STRING: '',
+        NAME: 'name',
+        UNDERSCORE: '_',
+        BUTTON: 'button',
+        TRUE: 'true',
+
+        USER_ID: 'userId',
+        FIRST_NAME: 'firstName',
+        LAST_NAME: 'lastName',
+        VERSION: 'version',
+        INSURANCE_COMPANY: 'insuranceCompany',
     }
 
     const utils = {
-
-        /**
-         * @description Return true if the given object is null OR empty string OR 
-         *  undefined OR "undefined", else return false.
-         * @param {*} obj 
-         */
         exist: function (obj) {
             return (typeof obj !== undefined ||
                 null !== obj ||
@@ -36,63 +59,51 @@ var enrollmentUtils = (function () {
         isFileReaderExist: function () {
             return window.FileReader;
         },
-        readSelectedFile: function (evt) {
-            try {
-                if (utils.isFileReaderExist) {
-                    let file = evt.target.files[0];
-                    let fileReader = new FileReader();
-                    fileReader.readAsText(file);
-                    fileReader.onload = function (onloadEvt) {
-                        console.log(onloadEvt.target.result);
-                        processData.fromFile(onloadEvt.target.result);
-                    }
-                }
-            } catch {
-                // TODO
-            }
-        },
-        getAllEnrollees: function (evt) {
-            let request = new XHR.request(
-                constants.URL_ROOT + constants.URL_PATH_ENROLLEES,
-                constants.GET,
-                constants.EMPTY_STRING,
-                constants.JSON,
-                constants.EMPTY_STRING);
-            XHR.makeRequest(request);
-        },
-        removeAllEnrollees: function (evt) {
-
+        createTimeForFileName: function () {
+            let dateStr = new Date().toISOString();
+            return dateStr.replace(/[-:.]/g, constants.EMPTY_STRING);
         },
         createEventHandler: function (id, event, action) {
             document.getElementById(id).addEventListener(event, action);
         },
-    } // end utils
+        createCsvFileLinkElement: function (fileName, formatedCsv) {
+            fileName = fileName + constants.UNDERSCORE + utils.createTimeForFileName() + constants.CSV_EXTENSION;
+            formatedCsv = constants.CSV_HEADER + formatedCsv;
 
-    const processData = (function () {
-        function enrollee(
+            let data = encodeURI(formatedCsv);
+            let linkElement = document.createElement(constants.HTML_ARCHOR);
+            linkElement.setAttribute(constants.ATTRIBUTE_HREF, data);
+            linkElement.setAttribute(constants.ATTRIBUTE_DOWNLOAD, fileName);
+            linkElement.setAttribute(constants.ATTRIBUTE_CLASS, constants.BOOTSTRAP_CSS_LINK);
+            linkElement.setAttribute(constants.ATTRIBUTE_ROLE, constants.BUTTON);
+            // linkElement.setAttribute(constants.ATTRIBUTE_ARIA_PRESSED, constants.TRUE);
+            linkElement.innerHTML = fileName;
+
+            return linkElement;
+        },
+        enrollee: function (
             userId,
             firstName,
             lastName,
             version,
             insuranceCompany,
         ) {
-            this.userId = userId;
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.version = version;
-            this.insuranceCompany = insuranceCompany;
+            this[constants.USER_ID] = userId;
+            this[constants.FIRST_NAME] = firstName;
+            this[constants.LAST_NAME] = lastName;
+            this[constants.VERSION] = version;
+            this[constants.INSURANCE_COMPANY] = insuranceCompany;
         }
+    } // end utils
 
-        /**
-         * 
-         * @param {*} attributes 
-         */
+    const processData = (function () {
+
         function createEnrolleeFromRowOfData(row) {
             let attributes = row.split(constants.COMMA);
 
-            let enrolleObj = new enrollee();
+            let enrolleObj = new utils.enrollee();
             let i = 0;
-            for (key in enrolleObj) {
+            for (let key in enrolleObj) {
                 enrolleObj[key] = attributes[i].trim();
                 i++;
             }
@@ -100,22 +111,44 @@ var enrollmentUtils = (function () {
             return enrolleObj;
         }
 
-        /**
-         * 
-         * @param {string} data - string retrieved from the File object
-         */
+        function convertEnrolleesToCsvFormat(enrollees) {
+            let str = constants.EMPTY_STRING;
+            for (let enrollee of enrollees) {
+                str += convertEnrolleeToCsvFormat(enrollee);
+            }
+            return str;
+        }
+
+        function convertEnrolleeToCsvFormat(enrollee) {
+            let str = constants.EMPTY_STRING;
+            str += enrollee[constants.USER_ID] + constants.COMMA;
+            str += enrollee[constants.FIRST_NAME] + constants.COMMA;
+            str += enrollee[constants.LAST_NAME] + constants.COMMA;
+            str += enrollee[constants.VERSION] + constants.COMMA;
+            str += enrollee[constants.INSURANCE_COMPANY] + constants.COMMA;
+            str += constants.CARRIAGE_RETURN;
+            return str;
+        }
+
+        function processDataToFile(enrollees) {
+            let csv = convertEnrolleesToCsvFormat(enrollees);
+            let insuranceCompanyName = enrollees[0][constants.INSURANCE_COMPANY];
+            let linkElement = utils.createCsvFileLinkElement(insuranceCompanyName.trim(), csv);
+            let linksElement = document.getElementById(constants.ID_LINKS);
+            linksElement.appendChild(linkElement);
+            linkElement.click();
+        }
+
         function processDataFromFile(data) {
-            // store JSON format of the enrolle object
             let enrollees = [];
 
             let rowsOfText = data.split(constants.CARRIAGE_RETURN);
-            for (row of rowsOfText) {
+            for (let row of rowsOfText) {
                 let enrolleeObj = createEnrolleeFromRowOfData(row);
                 enrollees.push(enrolleeObj);
             }
             let jsonEnrollees = JSON.stringify(enrollees);
 
-            //
             let request = new XHR.request(
                 constants.URL_ROOT + constants.URL_PATH_ENROLLEES,
                 constants.POST,
@@ -127,8 +160,75 @@ var enrollmentUtils = (function () {
 
         return {
             fromFile: processDataFromFile,
+            toFile: processDataToFile,
+            convertDataToCsvFormat: convertEnrolleesToCsvFormat,
         }
     })(); // end processData
+
+    const service = {
+        getAllInsuranceCompanies: function () {
+            let request = new XHR.request(
+                constants.URL_ROOT + constants.URL_PATH_ENROLLEES + constants.URL_INSURANCE_COMPANIES,
+                constants.GET,
+                constants.EMPTY_STRING,
+                constants.JSON,
+                constants.EMPTY_STRING);
+            return XHR.makeRequest(request);
+        },
+        getEnrolleesByInsuranceCompany: function (insuranceCompany) {
+            let request = new XHR.request(
+                constants.URL_ROOT + constants.URL_PATH_ENROLLEES + constants.URL_INSURANCE_COMPANY + insuranceCompany,
+                constants.GET,
+                constants.APPLICATION_JSON,
+                constants.EMPTY_STRING,
+                constants.EMPTY_STRING);
+            return XHR.makeRequest(request);
+        },
+        exportAllEnrollees: function () {
+            // get a list of insurance companies
+            service.getAllInsuranceCompanies()
+                .done(function (insuranceCompanies, textStatus, jqXHR) {
+
+                    for (let insuranceCompany of insuranceCompanies) {
+                        // get a list of enrollees for the given insurance company
+                        service.getEnrolleesByInsuranceCompany(insuranceCompany)
+                            .done(function (enrollees, textStatus, jqXHR) {
+                                processData.toFile(enrollees);
+                            });
+                    }
+                });
+        },
+        getAllEnrollees: function (evt) {
+            service.getAllInsuranceCompanies();
+            let request = new XHR.request(
+                constants.URL_ROOT + constants.URL_PATH_ENROLLEES,
+                constants.GET,
+                constants.EMPTY_STRING,
+                constants.JSON,
+                constants.EMPTY_STRING);
+            return XHR.makeRequest(request);
+        },
+        readSelectedFile: function (evt) {
+            if (utils.isFileReaderExist) {
+                let file = evt.target.files[0];
+                let fileReader = new FileReader();
+                fileReader.readAsText(file);
+                fileReader.onload = function (onloadEvt) {
+                    console.log(onloadEvt.target.result);
+                    processData.fromFile(onloadEvt.target.result);
+                }
+            }
+        },
+        removeAllEnrollees: function (evt) {
+            let request = new XHR.request(
+                constants.URL_ROOT + constants.URL_PATH_ENROLLEES,
+                constants.DELETE,
+                constants.EMPTY_STRING,
+                constants.EMPTY_STRING,
+                constants.EMPTY_STRING);
+            XHR.makeRequest(request);
+        }
+    }; // end service
 
     const XHR = (function () {
         function createRequest(
@@ -145,10 +245,6 @@ var enrollmentUtils = (function () {
             this.data = data;
         }
 
-        /**
-         * 
-         * @param {*} request 
-         */
         function makeRequest(request) {
             return $.ajax({
                 url: request.url,
@@ -173,8 +269,9 @@ var enrollmentUtils = (function () {
     })(); // end XHR
 
     return {
+        constants: constants,
         utils: utils,
-        constants, constants,
+        service: service,
     }
 })(); // end enrollmentUtils
 
@@ -182,13 +279,13 @@ var enrollmentUtils = (function () {
     enrollmentUtils.utils.createEventHandler(
         enrollmentUtils.constants.ID_SELECT_FILE,
         enrollmentUtils.constants.EVENT_CHANGE,
-        enrollmentUtils.utils.readSelectedFile);
+        enrollmentUtils.service.readSelectedFile);
     enrollmentUtils.utils.createEventHandler(
         enrollmentUtils.constants.ID_GET_ALL_ENROLLEES,
         enrollmentUtils.constants.EVENT_CLICK,
-        enrollmentUtils.utils.getAllEnrollees);
+        enrollmentUtils.service.exportAllEnrollees);
     enrollmentUtils.utils.createEventHandler(
         enrollmentUtils.constants.ID_REMOVE_ALL_ENROLLEES,
         enrollmentUtils.constants.EVENT_CLICK,
-        enrollmentUtils.utils.readSelectedFile);
+        enrollmentUtils.service.removeAllEnrollees);
 })();

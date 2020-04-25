@@ -2,17 +2,33 @@
 <html>
 
 <head>
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 </head>
 
 <body>
-  <div>
-    <input type="file" id="select_file" name="select_file" accept=".csv" />
-  </div>
-  <div>
-    <input type="button" id="get_all_enrollees" name="get_all_enrollees" value="Get All Enrollees" />
-  </div>
-  <div>
-    <input type="button" id="remove_all_enrollees" name="remove_all_enrollees" value="Remove All Enrollees" />
+  <div class="container mx-auto" style="width: 500px; margin-top: 20px">
+    <div class="panel panel-default">
+      <div class="panel-heading">CSV Enrollment Util</div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label for="select_file">Select a CSV file:</label>
+          <input type="file" class="btn btn-primary btn-sm" id="select_file" name="select_file" accept=".csv" csv="Choose CSV File" />
+          <small id="selectFileHelp" class="form-text text-muted">Data in the CSV file will be inserted into
+            database.</small>
+        </div>
+        <div class="form-group">
+          <input type="button" class="btn btn-primary btn-sm btn-block" id="get_all_enrollees" name="get_all_enrollees" value="Output CSV Files" />
+          <small id="selectFileHelp" class="form-text text-muted">CSV will be downloaded.</small>
+        </div>
+        <div class="form-group" id="links"></div>
+        <div class="form-group">
+          <input type="button" class="btn btn-danger btn-sm btn-block" id="remove_all_enrollees" name="remove_all_enrollees" value="Remove All Enrollees" />
+          <small id="selectFileHelp" class="form-text text-muted">Remove all the enrollees in the database to reset.</small>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="lib/jquery-3.5.0.min.js"></script>
   <script src="src/enrollment-utils.js"></script>
