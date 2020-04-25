@@ -2,7 +2,8 @@
 
 var enrollmentUtils = (function () {
     const constants = {
-        URL_ROOT: 'http://localhost:9000/api/',
+        // FOR TEST ONLY: URL_ROOT: 'http://localhost:9000/api/', 
+        URL_ROOT: 'https://ericwaidesigncore.herokuapp.com/api/',
         URL_PATH_ENROLLEES: 'enrollees/',
         URL_INSURANCE_COMPANIES: 'insuranceCompanies/',
         URL_INSURANCE_COMPANY: 'insuranceCompany/',
